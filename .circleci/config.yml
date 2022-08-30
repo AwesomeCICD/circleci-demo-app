@@ -274,7 +274,7 @@ jobs:
     environment:
       DOCKER_IMAGE: circleci-demo-app
 
-  deploy-ec2-instance:
+  deploy-ec2:
     docker:
       - image: cimg/deploy:2022.08
     steps:
@@ -305,8 +305,7 @@ jobs:
 workflows:
   demo:
     jobs:
-      - deploy-ec2-instance:
-          name: "Deploying EC2 Instance"
+      - deploy-ec2:
           context: circleci-demo-app-oidc
       # - test-demo:
       #     name: "Testing Python Demo Code"
