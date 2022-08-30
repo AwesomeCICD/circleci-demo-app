@@ -7,6 +7,29 @@ orbs:
 
 
 commands:
+  enable-oidc:
+    steps:
+      - run:
+          name: authenticate-and-interact
+          command: |
+            # use the OpenID Connect token to obtain AWS credentials
+            read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN \<<< \
+              $(aws sts assume-role-with-web-identity \
+              --role-arn ${AWS_ROLE_ARN} \
+              --role-session-name "CircleCI-${CIRCLE_WORKFLOW_ID}-${CIRCLE_JOB}" \
+              --web-identity-token $CIRCLE_OIDC_TOKEN \
+              --duration-seconds 3600 \
+              --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+              --output text)
+            export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+            # interact with AWS
+            aws sts get-caller-identity
+            echo "export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" >> $BASH_ENV
+            echo "export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}" >> $BASH_ENV
+            echo "export VERSION=$(cat VERSION)" >> $BASH_ENV
+            source $BASH_ENV
+
   set-build-env:
     description: "Set environment variables needed for building"
     steps:
@@ -251,6 +274,15 @@ jobs:
     environment:
       DOCKER_IMAGE: circleci-demo-app
 
+  deploy-ec2-instance:
+    docker:
+      - image: cimg/deploy:2022.08
+    steps:
+      - checkout
+      - enable-oidc
+    environment:
+          AWS_DEFAULT_REGION: us-west-2
+
   deploy-via-ip-ranges:
     circleci_ip_ranges: true
     docker:
@@ -272,41 +304,44 @@ jobs:
 workflows:
   demo:
     jobs:
-      - test-demo:
-          name: "Testing Python Demo Code"
-          context: SonarCloud
-      - build-image:
-          name: "Building Docker Image"
-      - test-image:
-          name: "Testing Docker Image"
-          requires:
-            - "Building Docker Image"
-      - scan-image:
-          name: "Scan image via Snyk"
-          requires:
-            - "Building Docker Image"
-      - tag-and-publish:
-          name: "Tag and Publish Docker Images"
-          requires:
-            - "Testing Docker Image"
-            - "Scan image via Snyk"
-            - "Testing Python Demo Code"
-          filters:
-            branches:
-              only: main
-      - hold:
-          name: "Approval Needed for Deployment"
-          type: approval
-          requires:
-            - "Tag and Publish Docker Images"
-          filters:
-            branches:
-              only: main
-      - deploy-via-ip-ranges:
-          name: "Deploy Application via IP Ranges"
-          requires:
-            - "Tag and Publish Docker Images"
-            - "Approval Needed for Deployment"
-          filters:
-            branches:
-              only: main
+      - deploy-ec2-instance:
+          name: "Deploying EC2 Instance"
+          context: circleci-demo-app-oidc
+      # - test-demo:
+      #     name: "Testing Python Demo Code"
+      #     context: SonarCloud
+      # - build-image:
+      #     name: "Building Docker Image"
+      # - test-image:
+      #     name: "Testing Docker Image"
+      #     requires:
+      #       - "Building Docker Image"
+      # - scan-image:
+      #     name: "Scan image via Snyk"
+      #     requires:
+      #       - "Building Docker Image"
+      # - tag-and-publish:
+      #     name: "Tag and Publish Docker Images"
+      #     requires:
+      #       - "Testing Docker Image"
+      #       - "Scan image via Snyk"
+      #       - "Testing Python Demo Code"
+      #     filters:
+      #       branches:
+      #         only: main
+      # - hold:
+      #     name: "Approval Needed for Deployment"
+      #     type: approval
+      #     requires:
+      #       - "Tag and Publish Docker Images"
+      #     filters:
+      #       branches:
+      #         only: main
+      # - deploy-via-ip-ranges:
+      #     name: "Deploy Application via IP Ranges"
+      #     requires:
+      #       - "Tag and Publish Docker Images"
+      #       - "Approval Needed for Deployment"
+      #     filters:
+      #       branches:
+      #         only: main
