@@ -4,7 +4,7 @@ version: 2.1
 orbs:
   sonarcloud: sonarsource/sonarcloud@1.0.1
   snyk: snyk/snyk@1.1.1
-
+  aws-cli: circleci/aws-cli@3.1.3
 
 commands:
   enable-oidc:
@@ -279,6 +279,7 @@ jobs:
       - image: cimg/deploy:2022.08
     steps:
       - checkout
+      - aws-cli/install
       - enable-oidc
     environment:
           AWS_DEFAULT_REGION: us-west-2
