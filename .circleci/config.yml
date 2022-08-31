@@ -261,12 +261,10 @@ jobs:
           backend_config_file: state.tf
           path: /home/circleci/project/circleci-demo-app/terraform
       - terraform/plan:
-          backend: true
           backend_config_file: state.tf
           var_file: demo.tfvars
           path: /home/circleci/project/circleci-demo-app/terraform
       - terraform/apply:
-          backend: true
           backend_config_file: state.tf
           var_file: demo.tfvars
           path: /home/circleci/project/circleci-demo-app/terraform
