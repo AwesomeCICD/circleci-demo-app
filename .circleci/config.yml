@@ -2,7 +2,7 @@ version: 2.1
 
 
 orbs:
-  sonarcloud: sonarsource/sonarcloud@1.1.1
+  sonarcloud: sonarsource/sonarcloud@1.1.0
   snyk: snyk/snyk@1.2.3
   aws-cli: circleci/aws-cli@3.1.3
   terraform: circleci/terraform@3.1.0
@@ -293,9 +293,9 @@ jobs:
 workflows:
   demo:
     jobs:
-      - test-demo:
-          name: "Testing Python Demo Code"
-          context: circleci-demo-app-sonarcloud
+      # - test-demo:
+      #     name: "Testing Python Demo Code"
+      #     context: circleci-demo-app-sonarcloud
       - build-image:
           name: "Building Docker Image"
       - test-image:
