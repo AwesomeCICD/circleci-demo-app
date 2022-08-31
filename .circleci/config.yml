@@ -177,7 +177,7 @@ commands:
     steps:
       - run:
           name: Run Ansible Playbook
-          command: ansible-playbook -i ./ansible/aws_ec2.yml -vv ./ansible/playbook.yml -u ansible -e "container_name=${DOCKERHUB_USERNAME}/${DOCKER_IMAGE}:<< parameters.image-tag >>"
+          command: ansible-playbook -i ./ansible/aws_ec2.yml -vv ./ansible/playbook.yml -u ansible -e "container_name=${DOCKERHUB_USERNAME}/${DOCKER_IMAGE}:<< parameters.image-tag >> target_hosts=$(cat output.txt)"
 
 
 executors:
@@ -261,6 +261,13 @@ jobs:
       - terraform/apply:
           var_file: demo.tfvars
           path: terraform
+      - run:
+          name: Write out Public IP value to output.txt
+          command: echo "$(terraform output public_ip)" > output.txt
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
     environment:
       AWS_DEFAULT_REGION: us-west-2
 
@@ -268,6 +275,8 @@ jobs:
     docker:
       - image: cimg/deploy:2022.08
     steps:
+      - attach_workspace:
+          at: .
       - add_ssh_keys:
           fingerprints:
             - "dd:8f:af:18:32:a1:c9:b7:86:ca:73:a1:1e:77:db:87"
