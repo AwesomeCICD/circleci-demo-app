@@ -165,11 +165,8 @@ commands:
           name: Install amazon.aws
           command: ansible-galaxy collection install amazon.aws
       - run:
-          name: Install community.docker.docker_image
-          command: ansible-galaxy collection install community.docker.docker_image
-      - run:
-          name: Install community.docker.docker_container
-          command: ansible-galaxy collection install community.docker.docker_container
+          name: Install community.docker
+          command: ansible-galaxy collection install community.docker
 
   deploy-application:
     description: "Deploy Application on Remote Host"
