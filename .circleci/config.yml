@@ -324,8 +324,7 @@ workflows:
           filters:
             branches:
               only: main
-      - deploy-container-via-ansible:
-          name: "Deploy Container with Ansible"
+      - deploy-app:
           context: circleci-demo-app-oidc
           requires:
             - deploy-ec2
