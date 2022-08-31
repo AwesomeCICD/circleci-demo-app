@@ -311,7 +311,7 @@ workflows:
           requires:
             - "Testing Docker Image"
             - "Scan image via Snyk"
-            - "Testing Python Demo Code"
+            # - "Testing Python Demo Code"
           filters:
             branches:
               only: main
