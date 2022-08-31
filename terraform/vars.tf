@@ -17,5 +17,5 @@ variable "owner_name" {
 
 variable "team_name" {
   description = "Name of the team the owner belongs too"
-  deafult = "Solutions Engineering"
+  default = "Solutions Engineering"
 }
