@@ -29,7 +29,7 @@ data "aws_vpc" "default" {
     default = true
 } 
 
-data "aws_security_group" "allow_ssh_anywhere" {
+data "aws_security_group" "ssh_http_https_only" {
   name = "ssh_http_https_only"
 }
 
@@ -41,7 +41,7 @@ resource "aws_instance" "web" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   key_name                    = var.key_name
-  vpc_security_group_ids      = [data.aws_security_group.allow_ssh_anywhere.id]
+  vpc_security_group_ids      = [data.aws_security_group.ssh_http_https_only.id]
   associate_public_ip_address = true
   user_data                   = data.template_file.user_data.rendered
 
