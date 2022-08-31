@@ -263,7 +263,7 @@ jobs:
           path: terraform
       - run:
           name: Write out Public IP value to output.txt
-          command: echo "$(terraform output public_ip)" > output.txt
+          command: echo "$(cd ./terraform && terraform output public_ip)" > output.txt
       - persist_to_workspace:
           root: .
           paths:
