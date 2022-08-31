@@ -49,7 +49,7 @@
       community.docker.docker_container:
         name: "circleci-demo-app"
         image: "{{ container_name }}"
-        state: present
+        state: started
         recreate: true
         pull: true
         detach: true
