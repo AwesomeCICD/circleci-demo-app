@@ -15,7 +15,7 @@ The features shown off in the demo are:
 - Utilizing CircleCI's [Test Insights](https://circleci.com/docs/2.0/collect-test-data/) to take a deeper look at jobs
 - Securely access cloud providers like AWS [via OIDC](https://circleci.com/docs/openid-connect-tokens)
 - Utilize Infrastructure as Code and deploy an EC2 instance
-- Enforce configuration via Ansible
+- Enforce configuration of servers via Ansible
 - Plus many more features!
 
 Currently, the demo deploys a Flask based website utilizing Docker. You can view the live site [here](http://demo.circleci-demo-app.com/).
