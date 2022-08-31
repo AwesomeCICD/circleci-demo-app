@@ -5,6 +5,7 @@ orbs:
   sonarcloud: sonarsource/sonarcloud@1.0.1
   snyk: snyk/snyk@1.1.1
   aws-cli: circleci/aws-cli@3.1.3
+  terraform: circleci/terraform@3.1.0
 
 commands:
   enable-oidc:
@@ -143,71 +144,43 @@ commands:
       - store_artifacts:
           path: test-results
 
-  stop-running-containers:
-    description: "Stop Running Containers on Remote Host"
-    parameters:
-      remote-ip:
-        type: env_var_name
-        default: REMOTE_IP
-      remote-user:
-        type: env_var_name
-        default: REMOTE_USER
+  install-additional-packages:
+    description: "Installing additional Packages for Ansible"
     steps:
       - run:
-          name: "SSH into host and Stop all Images"
+          name: Install boto3 & botocore
           command: |
-             ssh -o StrictHostKeyChecking=no ${<< parameters.remote-user >>}@${<< parameters.remote-ip >>} "docker rm -f \$(docker ps -a -q)" || echo "No Running Containers"
-
-  remove-all-images:
-    description: "Remove all images on Remote Host"
-    parameters:
-      remote-ip:
-        type: env_var_name
-        default: REMOTE_IP
-      remote-user:
-        type: env_var_name
-        default: REMOTE_USER
-    steps:
+            export PIP=$(which pip pip3 | head -1)
+            if [[ -n $PIP ]]; then
+              if which sudo > /dev/null; then
+                sudo $PIP install boto3 botocore --upgrade
+              else
+                $PIP install boto3 botocore --upgrade --user
+              fi
+            else
+              echo "Unable to install boto3 & botocore. Please install pip."
+              exit 1
+            fi
       - run:
-          name: "SSH into host and Remove all Images"
-          command: |
-             ssh -o StrictHostKeyChecking=no ${<< parameters.remote-user >>}@${<< parameters.remote-ip >>} "docker rmi -f \$(docker images -q)" || echo "No Images to Remove"
-              
-  pull-image:
-    description: "Pull Image on Remote Host"
-    parameters:
-      remote-ip:
-        type: env_var_name
-        default: REMOTE_IP
-      remote-user:
-        type: env_var_name
-        default: REMOTE_USER
-      image-tag:
-        type: string
-        default: "latest"
-    steps:
+          name: Install amazon.aws
+          command: ansible-galaxy collection install amazon.aws
       - run:
-          name: "SSH into host and Pull down an Image"
-          command: |
-             ssh -o StrictHostKeyChecking=no ${<< parameters.remote-user >>}@${<< parameters.remote-ip >>} "docker pull ${DOCKERHUB_USERNAME}/${DOCKER_IMAGE}:<< parameters.image-tag >>"
+          name: Install community.docker.docker_image
+          command: ansible-galaxy collection install community.docker.docker_image
+      - run:
+          name: Install community.docker.docker_container
+          command: ansible-galaxy collection install community.docker.docker_container
 
   deploy-application:
     description: "Deploy Application on Remote Host"
     parameters:
-      remote-ip:
-        type: env_var_name
-        default: REMOTE_IP
-      remote-user:
-        type: env_var_name
-        default: REMOTE_USER
       image-tag:
         type: string
         default: "latest"
     steps:
       - run:
-          name: "SSH into host and Deploy Application"
-          command: |
-             ssh -o StrictHostKeyChecking=no ${<< parameters.remote-user >>}@${<< parameters.remote-ip >>} "docker run -d -p 80:8080 ${DOCKERHUB_USERNAME}/${DOCKER_IMAGE}:<< parameters.image-tag >>"
+          name: Run Ansible Playbook
+          command: ansible-playbook -i ./ansible/aws_ec2.yml -vv ./ansible/playbook.yml -u ansible -e "container_name=${DOCKERHUB_USERNAME}/${DOCKER_IMAGE}:<< parameters.image-tag >>"
 
 
 executors:
@@ -281,67 +254,86 @@ jobs:
       - checkout
       - aws-cli/install
       - enable-oidc
+      - terraform/install:
+          terraform_version: 1.2.5
+      - terraform/init:
+          backend: true
+          backend_config_file: state.tf
+          path: /home/circleci/project/circleci-demo-app/terraform
+      - terraform/plan:
+          backend: true
+          backend_config_file: state.tf
+          var_file: demo.tfvars
+          path: /home/circleci/project/circleci-demo-app/terraform
+      - terraform/apply:
+          backend: true
+          backend_config_file: state.tf
+          var_file: demo.tfvars
+          path: /home/circleci/project/circleci-demo-app/terraform
     environment:
-          AWS_DEFAULT_REGION: us-west-2
+      AWS_DEFAULT_REGION: us-west-2
 
-  deploy-via-ip-ranges:
-    circleci_ip_ranges: true
+  deploy-container-via-ansible:
     docker:
-      - image: cimg/base:2021.10
+      - image: cimg/deploy:2022.08
     steps:
       - add_ssh_keys:
           fingerprints:
             - "dd:8f:af:18:32:a1:c9:b7:86:ca:73:a1:1e:77:db:87"
-      - stop-running-containers
-      - remove-all-images
-      - pull-image
+      - checkout
+      - aws-cli/install
+      - enable-oidc
+      - install-additional-packages
       - deploy-application
     environment:
       DOCKER_IMAGE: circleci-demo-app
-      REMOTE_IP: 18.221.14.33
-      REMOTE_USER: ubuntu
 
 
 workflows:
   demo:
     jobs:
+      - test-demo:
+          name: "Testing Python Demo Code"
+          context: circleci-demo-app-sonarcloud
+      - build-image:
+          name: "Building Docker Image"
+      - test-image:
+          name: "Testing Docker Image"
+          requires:
+            - "Building Docker Image"
+      - scan-image:
+          name: "Scan image via Snyk"
+          requires:
+            - "Building Docker Image"
+      - tag-and-publish:
+          name: "Tag and Publish Docker Images"
+          requires:
+            - "Testing Docker Image"
+            - "Scan image via Snyk"
+            - "Testing Python Demo Code"
+          filters:
+            branches:
+              only: main
+      - hold:
+          name: "Approval Needed for Deployment"
+          type: approval
+          requires:
+            - "Tag and Publish Docker Images"
+          filters:
+            branches:
+              only: main
       - deploy-ec2:
           context: circleci-demo-app-oidc
-      # - test-demo:
-      #     name: "Testing Python Demo Code"
-      #     context: SonarCloud
-      # - build-image:
-      #     name: "Building Docker Image"
-      # - test-image:
-      #     name: "Testing Docker Image"
-      #     requires:
-      #       - "Building Docker Image"
-      # - scan-image:
-      #     name: "Scan image via Snyk"
-      #     requires:
-      #       - "Building Docker Image"
-      # - tag-and-publish:
-      #     name: "Tag and Publish Docker Images"
-      #     requires:
-      #       - "Testing Docker Image"
-      #       - "Scan image via Snyk"
-      #       - "Testing Python Demo Code"
-      #     filters:
-      #       branches:
-      #         only: main
-      # - hold:
-      #     name: "Approval Needed for Deployment"
-      #     type: approval
-      #     requires:
-      #       - "Tag and Publish Docker Images"
-      #     filters:
-      #       branches:
-      #         only: main
-      # - deploy-via-ip-ranges:
-      #     name: "Deploy Application via IP Ranges"
-      #     requires:
-      #       - "Tag and Publish Docker Images"
-      #       - "Approval Needed for Deployment"
-      #     filters:
-      #       branches:
-      #         only: main
+          requires:
+            - "Tag and Publish Docker Images"
+            - "Approval Needed for Deployment"
+          filters:
+            branches:
+              only: main
+      - deploy-container-via-ansible:
+          context: circleci-demo-app-oidc
+          requires:
+            - deploy-ec2
+          filters:
+            branches:
+              only: main

@@ -1,0 +1,5 @@
+instance_type = "t2.micro"
+key_name = "crowley-mac"
+vm_name = "circleci-demo-app-ec2"
+owner_name = "Jim.Crowley@circleci.com"
+team_name = "Solutions Engineering"
