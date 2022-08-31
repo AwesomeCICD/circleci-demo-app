@@ -257,15 +257,11 @@ jobs:
       - terraform/install:
           terraform_version: 1.2.5
       - terraform/init:
-          backend: true
-          backend_config_file: backend.tf
           path: terraform
       - terraform/plan:
-          backend_config_file: backend.tf
           var_file: demo.tfvars
           path: terraform
       - terraform/apply:
-          backend_config_file: backend.tf
           var_file: demo.tfvars
           path: terraform
     environment:
