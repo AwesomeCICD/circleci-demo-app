@@ -287,6 +287,7 @@ jobs:
       - deploy-application
     environment:
       DOCKER_IMAGE: circleci-demo-app
+      ANSIBLE_HOST_KEY_CHECKING: "False"
 
 
 workflows:
