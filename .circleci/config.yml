@@ -187,13 +187,13 @@ executors:
 
   docker-builder:
     machine:
-      image: ubuntu-2004:202010-01
+      image: ubuntu-2004:current
       docker_layer_caching: true
     resource_class: medium
 
-  amd64:
+  amd:
     machine:
-      image: ubuntu-2004:202010-01
+      image: ubuntu-2004:current
     resource_class: medium
 
 
@@ -215,7 +215,7 @@ jobs:
       DOCKER_IMAGE: circleci-demo-app
 
   test-image:
-    executor: amd64
+    executor: amd
     steps:
       - set-build-env
       - load-docker-image
@@ -225,17 +225,17 @@ jobs:
       GOSS_SLEEP: 10
 
   scan-image:
-    executor: amd64
+    executor: amd
     steps:
       - set-build-env
       - load-docker-image
-      - snyk/scan:
-          docker-image-name: ${DOCKER_IMAGE}:${VERSION}-${CIRCLE_SHA1}
+      # - snyk/scan:
+      #     docker-image-name: ${DOCKER_IMAGE}:${VERSION}-${CIRCLE_SHA1}
     environment:
       DOCKER_IMAGE: circleci-demo-app
 
   tag-and-publish:
-    executor: amd64
+    executor: amd
     steps:
       - set-build-env
       - load-docker-image
