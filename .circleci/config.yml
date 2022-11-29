@@ -193,7 +193,7 @@ executors:
 
   amd:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2004:202010-01
     resource_class: medium
 
 
@@ -229,8 +229,8 @@ jobs:
     steps:
       - set-build-env
       - load-docker-image
-      # - snyk/scan:
-      #     docker-image-name: ${DOCKER_IMAGE}:${VERSION}-${CIRCLE_SHA1}
+      - snyk/scan:
+          docker-image-name: ${DOCKER_IMAGE}:${VERSION}-${CIRCLE_SHA1}
     environment:
       DOCKER_IMAGE: circleci-demo-app
 
