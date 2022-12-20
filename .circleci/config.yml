@@ -314,7 +314,7 @@ workflows:
             - "Testing Python Demo Code"
           filters:
             branches:
-              only: main
+              only: prod-demo
       - hold:
           name: "Approval Needed for Deployment"
           type: approval
@@ -322,7 +322,7 @@ workflows:
             - "Tag and Publish Docker Images"
           filters:
             branches:
-              only: main
+              only: prod-demo
       - deploy-ec2:
           context: circleci-demo-app-oidc
           requires:
@@ -330,11 +330,13 @@ workflows:
             - "Approval Needed for Deployment"
           filters:
             branches:
-              only: main
+              only: prod-demo
       - deploy-app:
           context: circleci-demo-app-oidc
           requires:
             - deploy-ec2
           filters:
             branches:
-              only: main
+              only: prod-demo
+
+# VS Code Extension Version: 1.4.0
